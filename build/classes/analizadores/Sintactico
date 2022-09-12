@@ -1,0 +1,161 @@
+/*
+   Analisadro sintactico
+*/
+
+/*Importacion de paquetes*/
+package analizadores; 
+import java_cup.runtime.*;
+import java.util.LinkedList;
+
+/*paquetes del analizador*/
+import interpretejlexcup.analisador.*;
+
+
+parser code 
+{:
+
+     /**
+     * Variable en la que se almacena el arbol de sintaxis abstracta que se 
+     * genera luego del analisis sintáctico.
+     */
+    public LinkedList<Instruccion> AST;
+
+    /**
+     * Método que devuelve el AST que se generó después de realizar el análisis sintáctico. 
+     * @return árbol de sintaxis abstacta que será utilizado posteriormente en la ejecución.
+     */
+    public LinkedList<Instruccion> getAST() {
+        return AST;
+    }    
+
+    /**
+     * Método al que se llama automáticamente ante algún error sintactico.
+     **/ 
+    public void syntax_error(Symbol s){ 
+        System.out.println("Error Sintáctico en la Línea " + (s.left) +
+        " Columna "+s.right+ ". No se esperaba este componente: " +s.value+"."); 
+    } 
+
+    /**
+     * Método al que se llama automáticamente ante algún error sintáctico 
+     * en el que ya no es posible una recuperación de errores.
+     **/ 
+    public void unrecovered_syntax_error(Symbol s) throws java.lang.Exception{ 
+        System.out.println("Error síntactico irrecuperable en la Línea " + 
+        (s.left)+ " Columna "+s.right+". Componente " + s.value + 
+        " no reconocido."); 
+    }  
+:} 
+
+terminal String INICIO,FIN;
+terminal String IMPRIMIR;
+terminal String INGRESAR, COMO, CONVALOR;
+terminal String TCADENA,TCARACTER,TBOOLEANO,TNUMERO,TDECIMAL;
+terminal String SALTOLINEA;
+terminal String COMENTLINE,COMENTMULTILINE;
+terminal String ASIGNACION;
+terminal String PARIZQ,PARDER;
+terminal String MAS,MENOS;
+terminal String POR,DIVIDIDO;
+terminal String MOD;
+terminal String POTENCIA;
+terminal String MENOR, MAYOR;
+terminal String ENTERO;
+terminal String DECIMAL;
+terminal String CADENA;
+terminal String IDENTIFICADOR;
+terminal String CARACTER;
+terminal String MIENTRAS, HACER, FINMIENTRAS;
+
+non terminal ini;
+non terminal LinkedList<Instruccion> instrucciones;
+non terminal Instruccion instruccion;
+non terminal Operacion operacion;
+non terminal Operacion primitivo;
+non terminal Comentario comentario;
+non terminal Declaracion declaracion;
+non terminal Tipo_dato tipodato;
+non terminal Asignacion asignacion;
+non terminal Imprimir imprimir;
+non terminal While while;
+
+precedence left MAS,MENOS;
+precedence left POR,DIVIDIDO;
+precedence left MOD,POTENCIA;
+precedence left MENOR,MAYOR;
+
+start with ini; 
+
+ini ::= 
+    INICIO instrucciones:a FIN {:
+    //se guarda el AST, que es la lista principal de instrucciones en la variable
+    //AST que se definió dentro del parser
+    parser.AST = a;
+:}
+;
+
+instrucciones ::= 
+   instrucciones:a instruccion:b{:RESULT=a; RESULT.add(b);:}
+ | instruccion:a{:RESULT=new LinkedList<>(); RESULT.add(a);:}
+; 
+
+instruccion ::= 
+    operacion:a {:RESULT=a;:}
+    | comentario:a {: RESULT = a; :}
+    | declaracion:a {: RESULT = a; :}
+    | asignacion:a {: RESULT = a; :}
+    | imprimir:a {: RESULT = a; :}
+    | while:a {: RESULT = a; :}
+    | error
+;
+
+operacion  ::= 
+    operacion:a MAS operacion:b  {:RESULT=new Operacion(a,b,Tipo_operacion.SUMA);:} 
+    | operacion:a MENOS operacion:b  {:RESULT=new Operacion(a,b,Tipo_operacion.RESTA);:}
+    | operacion:a POR operacion:b  {:RESULT=new Operacion(a,b,Tipo_operacion.MULTI);:}
+    | operacion:a DIVIDIDO operacion:b  {:RESULT=new Operacion(a,b,Tipo_operacion.DIVISION);:}
+    | operacion:a POTENCIA operacion:b {: RESULT=new Operacion(a,b,Tipo_operacion.POTENCIA); :}
+    | operacion:a MOD operacion:b {: RESULT=new Operacion(a,b,Tipo_operacion.MODULO); :}
+    | operacion:a MENOR operacion:b {: RESULT=new Operacion(a,b,Tipo_operacion.MENOR); :}
+    | operacion:a MAYOR operacion:b {: RESULT=new Operacion(a,b,Tipo_operacion.MAYOR); :}
+    | PARIZQ operacion:a PARDER {: RESULT = new Operacion(a,a,Tipo_operacion.AGRUPACION1); :}
+    | primitivo:a {:RESULT = a;:}
+;
+
+primitivo ::=
+    ENTERO:a {:RESULT =new Operacion(new Primitivo(a),Tipo_operacion.PRIMITIVO);:}
+    | DECIMAL:a {:RESULT =new Operacion(new Primitivo(a),Tipo_operacion.PRIMITIVO);:}
+    | CADENA:a {:RESULT =new Operacion(new Primitivo(a),Tipo_operacion.PRIMITIVO);:}
+    | IDENTIFICADOR:a {:RESULT = new Operacion(new Primitivo(a),Tipo_operacion.PRIMITIVO);:}
+    | CARACTER:a {:RESULT = new Operacion(new Primitivo(a),Tipo_operacion.PRIMITIVO);:} 
+;
+
+comentario ::= 
+    COMENTLINE:a {: RESULT = new Comentario(a,Tipo_comentario.LINE); :}
+    | COMENTMULTILINE:a {: RESULT = new Comentario(a,Tipo_comentario.MULTILINE); :}
+    | SALTOLINEA {: RESULT = new Comentario("",Tipo_comentario.SALTO); :}
+;
+
+declaracion ::=
+    INGRESAR IDENTIFICADOR:a COMO tipodato:b CONVALOR operacion:c {: RESULT = new Declaracion(a,b,c); :} 
+;
+
+tipodato ::=
+    TCADENA {: RESULT = Tipo_dato.CADENA; :}
+    | TCARACTER {: RESULT = Tipo_dato.CARACTER; :}
+    | TBOOLEANO {: RESULT = Tipo_dato.BOOLEANO; :}
+    | TNUMERO {: RESULT = Tipo_dato.NUMERO; :}
+    | TDECIMAL {: RESULT = Tipo_dato.DECIMAL; :}
+;
+
+asignacion ::=
+    IDENTIFICADOR:a ASIGNACION operacion:b {: RESULT = new Asignacion(a,b); :}
+;
+
+imprimir ::=
+    IMPRIMIR operacion:a {: RESULT = new Imprimir(a); :}
+;
+
+while ::=
+    MIENTRAS operacion:a HACER instrucciones:b FINMIENTRAS {: RESULT = new While(a,b); :}
+;

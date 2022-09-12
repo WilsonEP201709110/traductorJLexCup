@@ -1,0 +1,26 @@
+inicio
+imprimir "inicio"
+
+//ingresar un dato
+ingresar i como entero con_valor 0
+
+mientras i <  10 hacer
+	//imprimir cosas
+	imprimir "----------"
+	imprimir i
+	imprimir "----------"
+	i -> i + 1
+fin_mientras
+
+imprimir "esto es el final"
+
+
+ingresar bronco como cadena con_valor "Que no quede huella"
+
+ingresar num como decimal con_valor 87 potencia (1+2)
+
+imprimir num
+
+imprimir bronco
+
+fin
